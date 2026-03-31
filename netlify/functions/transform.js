@@ -6,36 +6,42 @@ exports.handler = async (event) => {
   try {
     const { imageBase64, mediaType } = JSON.parse(event.body);
 
-    const response = await fetch('https://api.replicate.com/v1/predictions', {
+    const startRes = await fetch('https://api.replicate.com/v1/predictions', {
       method: 'POST',
       headers: {
         'Authorization': `Token ${process.env.REPLICATE_API_TOKEN}`,
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
-        version: "ac732df83cea7fff18b8472768c88ad041fa750ff7682a21affe81863cbe77e4",
+        version: "854e8727697a057c525cdb45ab037f64ecca770a1769cc52287c2e56472a247b",
         input: {
           image: `data:${mediaType};base64,${imageBase64}`,
-          prompt: "watercolor painting, soft artistic style, warm colors, family portrait"
+          prompt: "watercolor painting style, soft brushstrokes, artistic, beautiful watercolor portrait",
+          negative_prompt: "photo, realistic, photography",
+          strength: 0.8,
+          num_inference_steps: 30
         }
       })
     });
 
-    const prediction = await response.json();
+    const prediction = await startRes.json();
 
-    // Attendre le résultat
     let result = prediction;
-    while (result.status !== 'succeeded' && result.status !== 'failed') {
-      await new Promise(r => setTimeout(r, 1500));
+    let attempts = 0;
+    while (result.status !== 'succeeded' && result.status !== 'failed' && attempts < 60) {
+      await new Promise(r => setTimeout(r, 2000));
       const poll = await fetch(`https://api.replicate.com/v1/predictions/${result.id}`, {
         headers: { 'Authorization': `Token ${process.env.REPLICATE_API_TOKEN}` }
       });
       result = await poll.json();
+      attempts++;
     }
 
-    if (result.status === 'failed') {
+    if (result.status === 'failed' || !result.output) {
       throw new Error('Transformation échouée');
     }
+
+    const output = Array.isArray(result.output) ? result.output[0] : result.output;
 
     return {
       statusCode: 200,
@@ -43,7 +49,7 @@ exports.handler = async (event) => {
         'Access-Control-Allow-Origin': '*',
         'Content-Type': 'application/json'
       },
-      body: JSON.stringify({ imageUrl: result.output[0] })
+      body: JSON.stringify({ imageUrl: output })
     };
 
   } catch (err) {

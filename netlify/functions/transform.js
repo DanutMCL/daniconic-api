@@ -13,13 +13,14 @@ exports.handler = async (event) => {
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
-        version: "854e8727697a057c525cdb45ab037f64ecca770a1769cc52287c2e56472a247b",
+        version: "15a3689ee13b0d2616e98820eca31d4c3abcd36672df6afce5cb6feb1d66087d",
         input: {
           image: `data:${mediaType};base64,${imageBase64}`,
-          prompt: "watercolor painting style, soft brushstrokes, artistic, beautiful watercolor portrait",
-          negative_prompt: "photo, realistic, photography",
-          strength: 0.8,
-          num_inference_steps: 30
+          prompt: "beautiful watercolor painting, soft watercolor style, white background, artistic brushstrokes, pastel colors, painted portrait",
+          negative_prompt: "photo, realistic, photography, sharp, detailed",
+          prompt_strength: 0.7,
+          num_inference_steps: 30,
+          guidance_scale: 7.5
         }
       })
     });
@@ -38,7 +39,7 @@ exports.handler = async (event) => {
     }
 
     if (result.status === 'failed' || !result.output) {
-      throw new Error('Transformation échouée');
+      throw new Error('Transformation échouée : ' + JSON.stringify(result.error));
     }
 
     const output = Array.isArray(result.output) ? result.output[0] : result.output;
